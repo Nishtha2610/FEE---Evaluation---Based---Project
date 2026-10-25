@@ -5,7 +5,8 @@ import { FaConciergeBell, FaCheckCircle } from 'react-icons/fa';
  * KitchenView Component (Kitchen Display System - KDS)
  * Displays incoming table orders grouped by course for kitchen staff.
  */
-export default function KitchenView({ kitchenTickets, onMarkTicketDone }) {
+export default function KitchenView({ kitchenTickets = [], onMarkTicketDone }) {
+  const safeTickets = Array.isArray(kitchenTickets) ? kitchenTickets : [];
   return (
     <div className="kitchen-view-container">
       <div className="section-title">
@@ -16,7 +17,7 @@ export default function KitchenView({ kitchenTickets, onMarkTicketDone }) {
         </div>
       </div>
 
-      {kitchenTickets.length === 0 ? (
+      {safeTickets.length === 0 ? (
         <div className="empty-kitchen">
           <FaConciergeBell size={64} className="empty-icon" />
           <h3>No Pending Kitchen Orders</h3>
@@ -24,7 +25,7 @@ export default function KitchenView({ kitchenTickets, onMarkTicketDone }) {
         </div>
       ) : (
         <div className="tickets-grid">
-          {kitchenTickets.map((ticket) => (
+          {safeTickets.map((ticket) => (
             <div key={ticket.id} className="ticket-card">
               <div className="ticket-header">
                 <div className="ticket-table">Table #{ticket.tableNumber}</div>

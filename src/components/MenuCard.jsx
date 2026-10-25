@@ -1,11 +1,20 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { FaPlus, FaMinus, FaStar, FaLeaf, FaFire } from 'react-icons/fa';
+import { FaPlus, FaMinus, FaStar, FaLeaf, FaFire, FaHeart, FaRegHeart } from 'react-icons/fa';
 
 /**
  * MenuCard Component
- * Displays a single restaurant item card with serving quantity, price, and visual render badge.
+ * Displays a single restaurant item card with serving quantity, price, favorite toggle, and visual render badge.
+ * Optimized with React.memo to demonstrate re-render isolation between Naive and Optimized mode.
  */
-export default function MenuCard({ item, quantityInCart, onAddToCart, onRemoveFromCart, renderMode }) {
+function MenuCard({ 
+  item, 
+  quantityInCart, 
+  onAddToCart, 
+  onRemoveFromCart, 
+  renderMode,
+  isFavorite = false,
+  onToggleFavorite
+}) {
   // Track render counts for this individual card instance using useRef
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
@@ -15,7 +24,7 @@ export default function MenuCard({ item, quantityInCart, onAddToCart, onRemoveFr
 
   useEffect(() => {
     setIsFlashing(true);
-    const timer = setTimeout(() => setIsFlashing(false), 400);
+    const timer = setTimeout(() => setIsFlashing(false), 350);
     return () => clearTimeout(timer);
   }, [renderCountRef.current]);
 
@@ -30,6 +39,27 @@ export default function MenuCard({ item, quantityInCart, onAddToCart, onRemoveFr
 
       <div className="card-image-container">
         <img src={item.image} alt={item.name} className="card-image" loading="lazy" />
+
+        {/* Heart Favorite Toggle Button */}
+        {onToggleFavorite && (
+          <button 
+            type="button"
+            className={`card-heart-btn ${isFavorite ? 'active-favorited' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(item);
+            }}
+            title={isFavorite ? `Remove ${item.name} from Favourites` : `Add ${item.name} to Favourites`}
+            aria-label="Toggle favourite"
+          >
+            {isFavorite ? (
+              <FaHeart className="heart-icon-filled" size={17} />
+            ) : (
+              <FaRegHeart className="heart-icon-outline" size={17} />
+            )}
+          </button>
+        )}
+
         <span className={`dietary-badge ${isVeg ? 'veg' : 'non-veg'}`}>
           {isVeg ? <FaLeaf size={12} /> : <FaFire size={12} />}
           {item.dietary}
@@ -65,6 +95,7 @@ export default function MenuCard({ item, quantityInCart, onAddToCart, onRemoveFr
               <button 
                 className="qty-btn" 
                 onClick={() => onRemoveFromCart(item.id)}
+                title="Decrease quantity"
               >
                 <FaMinus size={12} />
               </button>
@@ -72,6 +103,7 @@ export default function MenuCard({ item, quantityInCart, onAddToCart, onRemoveFr
               <button 
                 className="qty-btn" 
                 onClick={() => onAddToCart(item)}
+                title="Increase quantity"
               >
                 <FaPlus size={12} />
               </button>
@@ -82,3 +114,22 @@ export default function MenuCard({ item, quantityInCart, onAddToCart, onRemoveFr
     </div>
   );
 }
+
+// React.memo with custom comparison for Re-render Audit
+export default React.memo(MenuCard, (prevProps, nextProps) => {
+  // In Naive Mode: Always re-render to demonstrate the unoptimized baseline
+  if (nextProps.renderMode === 'naive') {
+    return false;
+  }
+
+  // In Optimized Mode: Only re-render if the item's cart quantity, favorite status, or render mode changed
+  return (
+    prevProps.quantityInCart === nextProps.quantityInCart &&
+    prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.renderMode === nextProps.renderMode &&
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.onAddToCart === nextProps.onAddToCart &&
+    prevProps.onRemoveFromCart === nextProps.onRemoveFromCart &&
+    prevProps.onToggleFavorite === nextProps.onToggleFavorite
+  );
+});

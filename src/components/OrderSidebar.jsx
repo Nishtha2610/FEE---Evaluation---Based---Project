@@ -1,41 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { FaShoppingBag, FaTrashAlt, FaUsers, FaPaperPlane, FaCheckCircle, FaUtensils, FaReceipt } from 'react-icons/fa';
+import { FaShoppingBag, FaTrashAlt, FaUsers, FaPaperPlane, FaCheckCircle, FaUtensils, FaReceipt, FaStar, FaConciergeBell } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import DiningFeedbackModal from './DiningFeedbackModal';
 
 /**
  * OrderSidebar Component
  * Manages the Table Lifecycle across Ordering, Served, and Billed views.
- * Service Charge of ₹10, 5% GST tax, and dynamic cumulative billing updates per dish.
+ * Service Charge of ₹10, 5% GST tax, dynamic cumulative billing,
+ * N-way split bill calculation, and dining feedback submission.
  */
 export default function OrderSidebar({ 
-  cartItems, 
-  servedItems,
-  billedHistory,
+  cartItems = [], 
+  servedItems = [],
+  billedHistory = [],
   onAddToCart, 
   onRemoveFromCart, 
   onClearTable,
-  selectedTableInfo,
-  tableStatus,
+  selectedTableInfo = { id: 1, type: 'Nuclear', capacity: 4 },
+  tableStatus = 'Ordering',
   setTableStatus,
-  onSendToKitchen
+  onSendToKitchen,
+  activeGuest
 }) {
+  const safeCart = Array.isArray(cartItems) ? cartItems : [];
+  const safeServed = Array.isArray(servedItems) ? servedItems : [];
+  const safeBilled = Array.isArray(billedHistory) ? billedHistory : [];
+
   const [splitCount, setSplitCount] = useState(1);
   const [orderNote, setOrderNote] = useState('');
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // Reset split count to 1 when table changes
   useEffect(() => {
     setSplitCount(1);
-  }, [selectedTableInfo.id]);
+  }, [selectedTableInfo?.id]);
 
   // Financial calculations for Ordering Draft
-  const draftSubtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const draftSubtotal = safeCart.reduce((acc, item) => acc + (Number(item?.price || 0) * Number(item?.quantity || 1)), 0);
   const draftGstTax = Math.round(draftSubtotal * 0.05); // 5% GST
   const draftServiceCharge = draftSubtotal > 0 ? 10 : 0; // ₹10 Service Charge
   const draftGrandTotal = draftSubtotal + draftGstTax + draftServiceCharge;
   const draftPerPersonAmount = splitCount > 0 ? (draftGrandTotal / splitCount).toFixed(2) : draftGrandTotal;
 
   // Financial calculations for Cumulative Billed History (Items sent to kitchen)
-  const billedSubtotal = billedHistory.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const billedSubtotal = safeBilled.reduce((acc, item) => acc + (Number(item?.price || 0) * Number(item?.quantity || 1)), 0);
   const billedGstTax = Math.round(billedSubtotal * 0.05); // 5% GST
   const billedServiceCharge = billedSubtotal > 0 ? 10 : 0; // ₹10 Service Charge
   const billedGrandTotal = billedSubtotal + billedGstTax + billedServiceCharge;
@@ -46,11 +55,28 @@ export default function OrderSidebar({
     onSendToKitchen(cartItems, orderNote);
     setOrderNote('');
     setOrderSuccess(true);
+    
+    // Aesthetic notification where necessary
+    toast.success(`Order sent to Kitchen for Table #${selectedTableInfo.id}!`, {
+      icon: '👨‍🍳',
+      position: 'top-right',
+      autoClose: 3000
+    });
+
     setTimeout(() => setOrderSuccess(false), 3000);
   };
 
+  const handleClearWithToast = () => {
+    onClearTable();
+    toast.info(`Table #${selectedTableInfo.id} reset & cleared for next guest.`, {
+      icon: '🧹',
+      position: 'top-right',
+      autoClose: 2500
+    });
+  };
+
   return (
-    <aside className="order-sidebar">
+    <aside id="order-sidebar-section" className="order-sidebar">
       <div className="sidebar-header">
         <div className="sidebar-title">
           <FaShoppingBag size={18} />
@@ -58,23 +84,50 @@ export default function OrderSidebar({
         </div>
         <div className="table-badge-group">
           <span className="table-badge">Table #{selectedTableInfo.id}</span>
-          <span className="table-type-tag">{selectedTableInfo.type} ({selectedTableInfo.capacity} Seats)</span>
+          <span className="table-zone-badge">{selectedTableInfo.type}</span>
         </div>
       </div>
 
-      {/* Table Status Selector Pills */}
-      <div className="table-status-bar">
-        <label>Status:</label>
-        <div className="status-pills">
-          {['Ordering', 'Served', 'Billed'].map(status => (
-            <button
-              key={status}
-              className={`status-pill ${tableStatus === status ? 'active' : ''}`}
-              onClick={() => setTableStatus(status)}
-            >
-              {status}
-            </button>
-          ))}
+      {/* Guest Identification Pill if active */}
+      {activeGuest && (
+        <div className="sidebar-guest-bar">
+          <span>Diner: <strong>{activeGuest.name}</strong></span>
+          <span className="guest-diet-tag">{activeGuest.dietary}</span>
+        </div>
+      )}
+
+      {/* Premium Table Lifecycle Status Segmented Stepper */}
+      <div className="status-stepper-container">
+        <div className="status-stepper-segmented">
+          <button 
+            type="button"
+            className={`stepper-pill-btn ${tableStatus === 'Ordering' ? 'active-ordering' : ''}`}
+            onClick={() => setTableStatus('Ordering')}
+          >
+            <span className="step-num">1</span>
+            <FaUtensils className="step-icon" size={12} />
+            <span className="step-text">Ordering</span>
+          </button>
+
+          <button 
+            type="button"
+            className={`stepper-pill-btn ${tableStatus === 'Served' ? 'active-served' : ''}`}
+            onClick={() => setTableStatus('Served')}
+          >
+            <span className="step-num">2</span>
+            <FaConciergeBell className="step-icon" size={12} />
+            <span className="step-text">Served</span>
+          </button>
+
+          <button 
+            type="button"
+            className={`stepper-pill-btn ${tableStatus === 'Billed' ? 'active-billed' : ''}`}
+            onClick={() => setTableStatus('Billed')}
+          >
+            <span className="step-num">3</span>
+            <FaReceipt className="step-icon" size={12} />
+            <span className="step-text">Billed</span>
+          </button>
         </div>
       </div>
 
@@ -85,8 +138,8 @@ export default function OrderSidebar({
             {cartItems.length === 0 ? (
               <div className="empty-cart">
                 <FaShoppingBag size={42} className="empty-icon" />
-                <p>No draft items for Table #{selectedTableInfo.id}.</p>
-                <span>Select items from the menu to start ordering.</span>
+                <p>Your table draft is empty.</p>
+                <span>Select dishes from the menu to build your running order.</span>
               </div>
             ) : (
               <div className="cart-list">
@@ -94,16 +147,16 @@ export default function OrderSidebar({
                   <div key={item.id} className="cart-item">
                     <div className="cart-item-info">
                       <h4>{item.name}</h4>
-                      <span className="cart-item-unit">₹{item.price} × {item.quantity}</span>
+                      <span className="cart-item-unit">₹{item.price} each</span>
                     </div>
 
-                    <div className="cart-item-right">
-                      <span className="cart-item-subtotal">₹{item.price * item.quantity}</span>
-                      <div className="mini-qty-controls">
-                        <button onClick={() => onRemoveFromCart(item.id)}>-</button>
-                        <span>{item.quantity}</span>
-                        <button onClick={() => onAddToCart(item)}>+</button>
+                    <div className="cart-item-controls">
+                      <div className="quantity-controls compact">
+                        <button className="qty-btn" onClick={() => onRemoveFromCart(item.id)}>-</button>
+                        <span className="qty-count">{item.quantity}</span>
+                        <button className="qty-btn" onClick={() => onAddToCart(item)}>+</button>
                       </div>
+                      <span className="cart-item-subtotal">₹{item.price * item.quantity}</span>
                     </div>
                   </div>
                 ))}
@@ -205,7 +258,7 @@ export default function OrderSidebar({
         </div>
       )}
 
-      {/* VIEW 3: BILLED STATUS VIEW (Cumulative Total with Item Names & Quantities) */}
+      {/* VIEW 3: BILLED STATUS VIEW */}
       {tableStatus === 'Billed' && (
         <div className="billed-summary-view">
           {billedHistory.length === 0 ? (
@@ -267,6 +320,17 @@ export default function OrderSidebar({
                     ₹{billedPerPersonAmount} <small>/ person</small>
                   </div>
                 </div>
+
+                {/* Dining Experience Feedback CTA Button */}
+                <div className="feedback-cta-container">
+                  <button 
+                    type="button" 
+                    className="feedback-trigger-btn"
+                    onClick={() => setIsFeedbackOpen(true)}
+                  >
+                    <FaStar className="star-gold-icon" /> Rate Experience & Leave Feedback
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -275,7 +339,7 @@ export default function OrderSidebar({
 
       {/* Clear Table Action Button (Always available to reset Table) */}
       <div className="sidebar-actions clear-table-footer">
-        <button className="btn-secondary clear-btn" onClick={onClearTable}>
+        <button className="btn-secondary clear-btn" onClick={handleClearWithToast}>
           <FaTrashAlt size={14} /> Clear & Reset Table #{selectedTableInfo.id}
         </button>
       </div>
@@ -285,6 +349,14 @@ export default function OrderSidebar({
           <FaCheckCircle size={16} /> Order sent to Kitchen Display!
         </div>
       )}
+
+      {/* Dining Feedback Modal */}
+      <DiningFeedbackModal 
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+        tableId={selectedTableInfo.id}
+        guestName={activeGuest ? activeGuest.name : null}
+      />
     </aside>
   );
 }

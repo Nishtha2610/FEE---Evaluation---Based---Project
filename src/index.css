@@ -14,12 +14,32 @@
   
   --success: #22c55e;
   --danger: #ef4444;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] {
+  --bg-color: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --border-color: #cbd5e1;
+  
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent-gold: #d97706;
+  
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  
+  --success: #16a34a;
+  --danger: #dc2626;
+  --shadow-color: rgba(0, 0, 0, 0.08);
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
 }
 
 body {

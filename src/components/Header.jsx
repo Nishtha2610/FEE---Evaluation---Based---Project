@@ -1,12 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FaCrown, FaUtensils, FaConciergeBell } from 'react-icons/fa';
+import { FaCrown, FaUtensils, FaConciergeBell, FaThLarge, FaUserCheck, FaUserCircle } from 'react-icons/fa';
 import { FiActivity, FiLayers, FiUsers } from 'react-icons/fi';
+import ThemeToggle from './ThemeToggle';
 
 /**
  * Header Component
- * Displays Queen's Kitchen Title & Logo, React Router Links,
- * Table Layout Category Filters (Nuclear 1-5, Family 6-10, Joint 11-12),
+ * Displays Queen's Kitchen Title & Logo (Clickable Crown for Guest Onboarding Modal),
+ * Navigation Links (Menu & Order, Floor Plan, Kitchen KDS, Audit),
+ * Active Guest Status Pill, Theme Toggle, Table Layout Filters,
  * and Architecture Mode Switcher.
  */
 export default function Header({ 
@@ -18,7 +20,9 @@ export default function Header({
   selectedTable,
   setSelectedTable,
   tableFilterCategory,
-  setTableFilterCategory
+  setTableFilterCategory,
+  activeGuest,
+  onOpenAuthModal
 }) {
   // Filter visible tables in selector based on selected table category filter
   const visibleTables = tablesList.filter(t => {
@@ -30,47 +34,106 @@ export default function Header({
 
   return (
     <header className="app-header">
-      <div className="header-brand">
-        <div className="brand-logo" title="Queen's Kitchen Logo Slot">
-          <FaCrown size={24} className="logo-icon" />
+      {/* Brand & Crown Click Trigger */}
+      <div className="header-brand-section">
+        <div 
+          className="header-brand" 
+          onClick={onOpenAuthModal} 
+          title="Click Crown to open Guest Sign Up / Login Access Window"
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="brand-logo" title="Click Crown to Register or Log In">
+            <FaCrown size={24} className="logo-icon crown-pulse" />
+          </div>
+          <div>
+            <h1 className="app-title queens-title">Queen's Kitchen</h1>
+            <span className="brand-tagline">Royal Hospitality & Dining</span>
+          </div>
         </div>
-        <div>
-          <h1 className="app-title queens-title">Queen's Kitchen</h1>
-        </div>
+
+        {/* Guest Access Pill */}
+        <button 
+          className={`guest-pill-btn ${activeGuest ? 'logged-in' : 'guest-guest'}`}
+          onClick={onOpenAuthModal}
+          title={activeGuest ? `Active: ${activeGuest.name} (Click to switch)` : 'Click to Register / Log In'}
+        >
+          {activeGuest ? (
+            <>
+              <FaUserCheck className="guest-pill-icon" />
+              <div className="guest-pill-texts">
+                <span className="guest-pill-name">{activeGuest.name}</span>
+                <span className="guest-pill-sub">Table #{activeGuest.tableId}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <FaUserCircle className="guest-pill-icon" />
+              <div className="guest-pill-texts">
+                <span className="guest-pill-name">Guest Login</span>
+                <span className="guest-pill-sub">Click Crown</span>
+              </div>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Navigation Tabs with React Router NavLinks */}
       <nav className="nav-tabs">
         <NavLink 
+          to="/" 
+          end
+          className={({ isActive }) => `tab-btn ${isActive ? 'active' : ''}`}
+          style={{ textDecoration: 'none' }}
+        >
+          <FaCrown size={15} />
+          <span>Home</span>
+        </NavLink>
+
+        <NavLink 
           to="/Home" 
           className={({ isActive }) => `tab-btn ${isActive ? 'active' : ''}`}
+          style={{ textDecoration: 'none' }}
         >
-          <FaUtensils size={16} />
+          <FaUtensils size={15} />
           <span>Menu & Order</span>
+        </NavLink>
+
+        <NavLink 
+          to="/tables" 
+          className={({ isActive }) => `tab-btn ${isActive ? 'active' : ''}`}
+          style={{ textDecoration: 'none' }}
+        >
+          <FaThLarge size={15} />
+          <span>Floor Plan</span>
         </NavLink>
 
         <NavLink 
           to="/Kitchen" 
           className={({ isActive }) => `tab-btn ${isActive ? 'active' : ''}`}
+          style={{ textDecoration: 'none' }}
         >
-          <FaConciergeBell size={16} />
+          <FaConciergeBell size={15} />
           <span>Kitchen View (KDS)</span>
         </NavLink>
 
         <NavLink 
           to="/Audit" 
           className={({ isActive }) => `tab-btn ${isActive ? 'active' : ''}`}
+          style={{ textDecoration: 'none' }}
         >
-          <FiActivity size={16} />
+          <FiActivity size={15} />
           <span>Re-Render Audit</span>
         </NavLink>
       </nav>
 
-      {/* Controls & Table Layout Category Filter */}
+      {/* Controls: Theme, Layout, Benchmark, Naive/Optimized */}
       <div className="header-controls">
-        {/* Table Type Category Filter */}
+        {/* Dark / Light Mode Toggle */}
+        <ThemeToggle />
+
+        {/* Table Type Category Filter & Selector */}
         <div className="control-group">
-          <label><FiUsers size={16} /> Layout:</label>
+          <label><FiUsers size={15} /> Layout:</label>
           <select 
             value={tableFilterCategory} 
             onChange={(e) => setTableFilterCategory(e.target.value)}
@@ -99,7 +162,7 @@ export default function Header({
 
         {/* Dataset Size Toggle (9 items vs 200 items) */}
         <div className="control-group">
-          <label><FiLayers size={16} /> Dataset:</label>
+          <label><FiLayers size={15} /> Dataset:</label>
           <button 
             className={`toggle-btn ${itemCount === 200 ? 'active-benchmark' : ''}`}
             onClick={() => setItemCount(itemCount === 9 ? 200 : 9)}

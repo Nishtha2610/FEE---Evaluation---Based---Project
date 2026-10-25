@@ -2,3 +2,11 @@ node_modules/
 dist/
 .env
 *.log
+
+# Private Viva & Defense Guides (Strictly Private - DO NOT PUSH)
+*viva*
+*Viva*
+*.private.*
+Viva_Preparation*
+viva_notes*
+generate_menu.py
